@@ -1,0 +1,202 @@
+<main class="content">
+    <div class="container mt-5">
+        <h1>Session Details</h1>
+
+        <!-- Session Details -->
+        <div id="sessionDetails">
+            <h3 id="courseName"><%= session.Course %> (<%= session.SessionType %>)</h3>
+            <p><strong>Date & Time:</strong> <%= new Date(session.DateTime).toLocaleString("en-US") %></p>
+            <p><strong>Tutor:</strong> <%= session.Tutor_name %> (<%= session.Tutor_email %>)</p>
+        </div>
+
+        <hr>
+
+        <!-- Students Table -->
+        <h4>Students in this Session</h4>
+        <table class="table table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>Email</th>
+                </tr>
+            </thead>
+            <tbody id="studentsTableBody">
+                <!-- Dynamic content will be added here -->
+                <% session.Students.forEach(student => { %>
+                    <tr>
+                        <td><%= student.username %></td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+
+        <hr>
+
+        <!-- Upload Document Section -->
+        <div id="uploadDocuments">
+            <h4>Upload Documents (Google Drive Links)</h4>
+            <form id="documentForm">
+                <input type="text" id="documentName" class="form-control" placeholder="Document Name" required><br>
+                <input type="url" id="documentLink" class="form-control" placeholder="Google Drive Link" required><br>
+                <button type="submit" class="btn btn-primary">Upload Document</button>
+            </form>
+            <p id="uploadStatus"></p>
+        </div>
+
+        <hr>
+
+        <!-- Uploaded Documents List -->
+        <div id="uploadedDocuments">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Document Name</th>
+                        <th>Document Link</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="documentsList">
+                    <!-- Documents will be dynamically inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</main>
+
+<script>
+document.getElementById('documentForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const documentName = document.getElementById('documentName').value;
+    const documentLink = document.getElementById('documentLink').value;
+    const sessionId = localStorage.getItem("Session");
+    try {
+
+
+        const currentUser = JSON.parse(localStorage.getItem('User'));
+
+        const sessionResponse = await fetch(`/api/session/${sessionId}`);
+        if (!sessionResponse.ok) throw new Error('Failed to fetch session details.');
+        const session = await sessionResponse.json();
+
+        const isTutor = currentUser.username === session.Tutor_username;
+
+        if (isTutor){
+            const response = await fetch('/api/upload-document-tutor', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    sessionId: sessionId,  // Dynamically injected session ID from the backend
+                    documentName,
+                    documentLink
+                })
+            });
+            if (!response.ok) throw new Error('Failed to upload document');
+        } else{
+            const response = await fetch('/api/upload-document', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    sessionId: sessionId,  // Dynamically injected session ID from the backend
+                    documentName,
+                    documentLink
+                })
+            });
+            if (!response.ok) throw new Error('Failed to upload document');
+        }
+        
+
+        
+
+        document.getElementById('uploadStatus').textContent = 'Document uploaded successfully!';
+        document.getElementById('documentName').value = '';
+        document.getElementById('documentLink').value = '';
+        fetchDocuments(sessionId);  // Reload the document list
+    } catch (error) {
+        console.error('Error uploading document:', error);
+        document.getElementById('uploadStatus').textContent = 'Failed to upload document.';
+    }
+});
+async function fetchDocuments(sessionId) {
+    try {
+        // Fetch the documents related to the specific session
+        const response = await fetch(`/api/documents/${sessionId}`);
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch documents');
+        }
+
+        // Parse the response into JSON format
+        const documents = await response.json();
+        console.log('Documents:', documents); // Debug log
+
+        // Get the current user's username (assumed to be in localStorage)
+        const currentUser = JSON.parse(localStorage.getItem('User'));
+
+        // Clear the current document list on the page
+        const documentsListContainer = document.getElementById('documentsList');
+        documentsListContainer.innerHTML = '';
+
+        const sessionResponse = await fetch(`/api/session/${sessionId}`);
+        if (!sessionResponse.ok) throw new Error('Failed to fetch session details.');
+        const session = await sessionResponse.json();
+        // Populate the document list dynamically
+        documents.forEach(document => {
+            const { _id,sessionID,Document_name, Document_link } = document;
+            
+            // Check if the current user is the tutor for this session
+            const isTutor = currentUser.username === session.Tutor_username;
+            // Create a new row for the document
+            const documentRow = `
+                <tr>
+                    <td>${Document_name}</td>
+                    <td><a href="${Document_link}" target="_blank">View Document</a></td>
+                    ${isTutor ? `<td><button class="btn btn-danger btn-sm" onclick="deleteDocument('${_id}')">Delete</button></td>` : ''}
+                </tr>
+            `;
+
+            // Append the row to the document list container
+            documentsListContainer.insertAdjacentHTML('beforeend', documentRow);
+        });
+    } catch (error) {
+        console.error('Error fetching documents:', error);
+        document.getElementById('documentsList').innerHTML = '<tr><td colspan="2">No Documents Found</td></tr>';
+    }
+}
+
+async function deleteDocument(documentId) {
+    try {
+        const response = await fetch(`/api/delete-document/${documentId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to delete document');
+        }
+
+        alert('Document deleted successfully!');
+        // Reload the documents after deletion
+        const sessionId = localStorage.getItem("Session");; // Pass session ID dynamically
+        fetchDocuments(sessionId);  // Reload the document list
+    } catch (error) {
+        console.error('Error deleting document:', error);
+        alert('Failed to delete document.');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Ensure that session ID is available when the page loads.
+    
+    const sessionId = localStorage.getItem("Session"); // Dynamically pass session ID into the JS code (e.g., EJS templating or another method)
+
+    // Fetch and display documents related to the session
+    fetchDocuments(sessionId);
+});
+
+</script>

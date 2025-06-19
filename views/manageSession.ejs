@@ -1,0 +1,313 @@
+<body>
+    <div class="wrapper">
+      <main class="content">    
+        <div class="container mt-5">
+          <h1 class="mb-4">Manage Sessions</h1>
+          <button class="btn btn-primary mb-3" id="addSessionButton" data-bs-toggle="modal" data-bs-target="#addSessionModal">Add New Session</button>
+          <table class="table table-striped">
+              <thead class="table-dark">
+                  <tr>
+                      <th>Course</th>
+                      <th>Session Type</th>
+                      <th>Date & Time</th>
+                      <th>Booked</th>
+                      <th>Actions</th>
+                  </tr>
+              </thead>
+              <tbody id="sessionsTableBody">
+              </tbody>
+          </table>
+      </div>
+  
+      <!-- Modal -->
+      <div class="modal fade" id="addSessionModal" tabindex="-1" aria-labelledby="addSessionModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+              <div class="modal-content">
+                  <div class="modal-header">
+                      <h5 class="modal-title" id="addSessionModalLabel">Add New Session</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                      <form id="addSessionForm">
+                          <div class="mb-3">
+                              <label for="courseSelect" class="form-label">Course</label>
+                              <select class="form-select" id="courseSelect" required>
+                              </select>
+                          </div>
+                          <div class="mb-3">
+                              <label for="dateTimePicker" class="form-label">Date & Time</label>
+                              <input type="datetime-local" class="form-control" id="dateTimePicker" required>
+                          </div>
+                          <div class="mb-3">
+                              <label class="form-label">Session Type</label><br>
+                              <input type="radio" id="groupSession" name="sessionType" value="Group" required>
+                              <label for="groupSession">Group</label><br>
+                              <input type="radio" id="individualSession" name="sessionType" value="Individual">
+                              <label for="individualSession">Individual</label>
+                          </div>
+                          <button type="submit" class="btn btn-primary">Add Session</button>
+                      </form>
+                  </div>
+              </div>
+          </div>
+      </div>
+  
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+      </main>
+    </div>
+  
+    <script>
+      // Retrieve the authenticated user from localStorage
+      const user = JSON.parse(localStorage.getItem("User"));
+  
+      // Check if the user is logged in
+  
+        const  role  = user.role;
+  
+        // Toggle element visibility based on the user's role
+        const tutorOnlyElement = document.getElementById("tutor-content")
+        const studentOnlyElement = document.getElementById("student-content");
+  
+        if (role === "Tutor") {
+            if (tutorOnlyElement) tutorOnlyElement.style.display = "block"; // Show Tutor-specific content
+            if (studentOnlyElement) studentOnlyElement.style.display = "none"; // Hide Student-specific content
+        } else{
+            if (tutorOnlyElement) tutorOnlyElement.style.display = "none"; // Hide Tutor-specific content
+            if (studentOnlyElement) studentOnlyElement.style.display = "block"; // Show Student-specific content
+          }
+  </script>
+<script>
+    async function loadSessions() {
+        try {
+            // Retrieve the authenticated user's username from localStorage
+            const user = JSON.parse(localStorage.getItem("User"));
+            const username = user.username;
+    
+            // Fetch sessions for the user
+            const response = await fetch(`/api/sessions/${username}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+    
+            if (!response.ok) {
+                throw new Error("Failed to fetch sessions");
+            }
+    
+            const sessions = await response.json();
+    
+            // Iterate through each session and fetch enrollment counts if the type is "Group"
+            for (const indsession of sessions) {
+                const {
+                    _id,
+                    Course,
+                    DateTime,
+                    SessionType,
+                    Booked,
+                    Tutor_name,
+                } = indsession; // Destructure session data
+    
+                const formattedDateTime = new Date(DateTime).toLocaleString("en-US", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                });
+    
+                let displayBooked = Booked;
+    
+                // If the session is a Group session, fetch the enrollment count
+                if (SessionType === "Group") {
+                    const enrollmentResponse = await fetch(
+                        `/api/session-enrollment-count/${_id}`,
+                        {
+                            method: "GET",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                        }
+                    );
+    
+                    if (!enrollmentResponse.ok) {
+                        console.error(
+                            `Failed to fetch enrollment count for session ${_id}`
+                        );
+                    } else {
+                        const { count } = await enrollmentResponse.json();
+                        displayBooked = `${count} enrolled`; // Set the display value
+                    }
+                }
+    
+                // Add the session to the table
+                addSessionToTable(_id, Course, SessionType, formattedDateTime, displayBooked, Tutor_name);
+            }
+        } catch (error) {
+            console.error("Error fetching sessions:", error);
+        }
+    }
+    
+    function addSessionToTable(sessionId, course, sessionType, dateTime, Booked, name) {
+        const newRow = document.createElement("tr");
+        newRow.id = sessionId;
+    
+        newRow.innerHTML = `
+            <td>${course}</td>
+            <td>${sessionType}</td>
+            <td>${dateTime}</td>
+            <td>${Booked}</td>
+            <td>
+                <button class="btn btn-info btn-sm" onclick="enterSession('${sessionId}')">Enter Session</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteSession('${sessionId}')">Delete</button>
+            </td>
+        `;
+    
+        document.getElementById("sessionsTableBody").appendChild(newRow);
+    }
+    function enterSession(sessionId) {
+        // Redirect to the dynamic session page with the session ID
+        localStorage.setItem("Session",sessionId);
+        window.location.href = `/session/${sessionId}`;
+    }
+    document.addEventListener("DOMContentLoaded", loadSessions);
+    
+    async function deleteSession(sessionId) {
+        try {
+            // Send DELETE request to the server to remove the booking and update the session
+            const response = await fetch(`/api/cancel-booking-session`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ SessionId:sessionId }),
+            });
+    
+            if (!response.ok) {
+                throw new Error("Failed to delete booking");
+            }
+            
+            const deleteSessionResponse = await fetch('/api/delete-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ sessionId }), // Send sessionId as a JSON object
+            });
+    
+            if (!deleteSessionResponse.ok) {
+                throw new Error('Failed to delete session');
+            }
+
+            // Remove the session row from the table
+            const row = document.getElementById(sessionId);
+            if (row) {
+                row.remove();
+            }
+    
+            alert("Session deleted successfully!");
+        } catch (error) {
+            console.error("Error deleting session:", error);
+        }
+    }
+
+    document.getElementById("addSessionForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+    
+        // Get form values
+        const course = document.getElementById("courseSelect").value;
+        const dateTime = document.getElementById("dateTimePicker").value;
+        const sessionType = document.querySelector("input[name='sessionType']:checked").value;
+    
+        // Retrieve the logged-in user's information
+        const currentUser = JSON.parse(localStorage.getItem("User"));
+        const username = currentUser.username;
+        const name = currentUser.name;
+    
+        try {
+            // Make a POST request to add the session to the database
+            const response = await fetch("/api/add-session", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    course,
+                    dateTime,
+                    sessionType,
+                    booked: "No", // Default value for a new session
+                    tutorName: name,
+                    tutorUsername: username,
+                }),
+            });
+    
+            if (!response.ok) {
+                throw new Error("Failed to add session to the database.");
+            }
+    
+            // Get the created session (optional, if the backend returns it)
+            const newSession = await response.json();
+    
+            // Format the datetime for display in the table
+            const formattedDateTime = new Date(dateTime).toLocaleString("en-US", {
+                dateStyle: "medium",
+                timeStyle: "short",
+            });
+    
+            // Add the new session to the table
+            addSessionToTable(newSession._id, course, sessionType, formattedDateTime, "No", name);
+    
+            // Close the modal after the session is added
+            const addSessionModal = bootstrap.Modal.getInstance(document.getElementById("addSessionModal"));
+            addSessionModal.hide();
+    
+            // Reset the form for the next session
+            document.getElementById("addSessionForm").reset();
+    
+            alert("Session added successfully!");
+        } catch (error) {
+            console.error("Error adding session:", error);
+            alert("Failed to add session. Please try again.");
+        }
+    });
+    
+</script>
+
+<script>
+    // Fetch the available courses for the logged-in tutor
+    async function loadAvailableCourses() {
+        try {
+            const user = JSON.parse(localStorage.getItem('User'));
+            const username = user.username;
+
+            // Fetch the courses from the server
+            const response = await fetch(`/api/tutored-courses/${username}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch tutored courses');
+            }
+
+            const courses = await response.json();
+            const courseSelect = document.getElementById('courseSelect');
+
+            // Clear any existing options
+            courseSelect.innerHTML = '';
+
+            // Populate the dropdown with the fetched courses
+            courses.forEach((course) => {
+                const option = document.createElement('option');
+                option.value = course;
+                option.textContent = course;
+                courseSelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error loading available courses:', error);
+        }
+    }
+
+    // Attach event listener to the modal open event
+    document.getElementById('addSessionModal').addEventListener('show.bs.modal', loadAvailableCourses);
+</script>
+  </body>

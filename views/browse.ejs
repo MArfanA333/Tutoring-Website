@@ -1,0 +1,104 @@
+<main class="content">
+    <div class="container mt-5">
+        <h2 class="text-center">Browse Available Sessions</h2>
+
+        <!-- Search Bar -->
+        <div class="row mb-5">
+            <div class="col-md-12">
+                <input type="text" id="search" class="form-control" placeholder="Search for sessions..." oninput="filterSessions()">
+            </div>
+        </div>
+
+        <!-- Class List -->
+        <div class="row" id="classList">
+            <!-- Dynamic content will be added here -->
+        </div>
+    </div>
+</main>
+
+<script>
+let allSessions = []; // Store all sessions globally
+
+// Function to dynamically load unbooked sessions from the database
+async function loadUnbookedSessions() {
+    try {
+        const response = await fetch("http://localhost:5000/api/unbooked-sessions"); // Fetch unbooked sessions
+        if (!response.ok) {
+            throw new Error("Failed to fetch unbooked sessions");
+        }
+
+        allSessions = await response.json(); // Parse sessions data
+        renderSessions(allSessions); // Render all sessions initially
+        console.log("Unbooked sessions loaded successfully.");
+    } catch (error) {
+        console.error("Error loading unbooked sessions:", error);
+    }
+}
+
+// Function to render sessions
+function renderSessions(sessions) {
+    const classListContainer = document.getElementById("classList");
+
+    // Clear existing content
+    classListContainer.innerHTML = "";
+
+    // Add a card for each session
+    sessions.forEach(session => {
+        const { _id, Course, DateTime, SessionType, Tutor_name, Tutor_username } = session;
+
+        // Create card HTML
+        const cardHTML = `
+            <div class="col-md-4 mb-3" data-class="${Course}">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">${Course} (${SessionType})</h5>
+                        <p class="card-text">Tutor: ${Tutor_name}</p>
+                        <p class="card-text">Time: ${new Date(DateTime).toLocaleString("en-US")}</p>
+                        <button class="btn btn-primary" onclick="bookSession('${_id}', '${Tutor_username}')">Book Now</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Append the card to the container
+        classListContainer.innerHTML += cardHTML;
+    });
+}
+
+// Function to filter sessions based on search input
+function filterSessions() {
+    const searchValue = document.getElementById("search").value.toLowerCase(); // Get search input
+    const filteredSessions = allSessions.filter(session =>
+        session.Course.toLowerCase().includes(searchValue) // Filter by course name
+    );
+
+    renderSessions(filteredSessions); // Render filtered sessions
+}
+
+async function bookSession(sessionId, tutorUsername) {
+    try {
+        const studentUsername = JSON.parse(localStorage.getItem("User")).username; // Retrieve logged-in user
+
+        const response = await fetch("http://localhost:5000/api/book-session", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ sessionId, tutorUsername, studentUsername }), // Send session and user info
+        });
+
+        if (response.ok) {
+            alert("Session booked successfully!");
+            loadUnbookedSessions(); // Reload the list of unbooked sessions
+        } else {
+            const error = await response.json();
+            alert(error.message || "Failed to book the session.");
+        }
+    } catch (error) {
+        console.error("Error booking session:", error);
+    }
+}
+
+// Load unbooked sessions on page load
+document.addEventListener("DOMContentLoaded", loadUnbookedSessions);
+</script>

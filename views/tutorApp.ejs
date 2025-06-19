@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AUS Tutoring Website</title>
+<style>
+    /* General Styles */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #F7F1E3;
+    color: #333;
+  }
+  
+/* Navbar Styles */
+.navbar {
+    background-color: #2C3E50;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+    display: flex;
+  }
+  
+  .navbar .logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #FFC107;
+  }
+  
+  .nav-links {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    gap: 1.5rem;
+  }
+  
+  .nav-links li {
+      display: inline-block;
+  }
+  
+  .nav-links a {
+    text-decoration: none;
+    color: #fff;
+    font-weight: 500;
+    transition: color 0.3s ease;
+  }
+  
+  .nav-links a:hover {
+    color: #333;
+  }
+
+  /* Form Container */
+  .form-container {
+    width: 90%;
+    max-width: 500px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background-color: #f3e3bf;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  h1 {
+    text-align: center;
+    color: #2C3E50;
+    margin-bottom: 1.5rem;
+  }
+  
+  /* Form Elements */
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  label {
+    font-weight: bold;
+    color: #333;
+  }
+  
+  input, select {
+    padding: 0.5rem;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  input:focus, select:focus {
+    border-color: #87CEEB;
+    outline: none;
+    box-shadow: 0 0 4px rgba(135, 206, 235, 0.5);
+  }
+  
+  button {
+    padding: 0.75rem;
+    font-size: 1rem;
+    color: #fff;
+    background-color: #2C3E50;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  button:hover {
+    background-color: #87CEEB;
+  }
+
+/* Footer */
+.footer {
+    text-align: center;
+    padding: 1rem 0;
+    background-color: #FFC107;
+    color: #555;
+    box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
+  }
+  .wrapper{
+    flex:1;
+  }
+</style>
+</head>
+<body>
+  <div class = wrapper>
+    <header class="navbar">
+        <div class="container">
+          <h1 class="logo">AUS Tutoring Website</h1>
+          <nav>
+            <ul class="nav-links">
+              <li><a href="http://localhost:5000/index" class="btn" >Home</a></li>
+              <li><a href="http://localhost:5000/browse" class="btn" >Browse Sessions</a></li>
+              <li><a href="http://localhost:5000/tutorApp" class="btn" >Tutor Application</a></li>
+              <li><a href="http://localhost:5000/managebooking" class="btn" >View Bookings</a></li>
+              <li><a href="http://localhost:5000/profile" class="btn" >View Profile</a></li>
+              <li><a href="http://localhost:5000/managesession" class="btn tutor-content" id = "tutor-content">View Sessions</a></li>
+              <li><a href="http://localhost:5000" class="btn btn-outline-light logout-btn">Logout</a></li>
+            </ul>
+          </nav>
+        </div>
+    </header>
+  <div class="form-container">
+    <h1>Apply to Be a Tutor</h1>
+    <form id="tutor-application-form">
+      <!-- Current Standing -->
+      <label for="standing">Current Standing:</label>
+      <select id="standing" name="standing" required>
+        <option value="" disabled selected>Select your standing</option>
+        <option value="freshman">Freshman</option>
+        <option value="sophomore">Sophomore</option>
+        <option value="junior">Junior</option>
+        <option value="senior">Senior</option>
+      </select>
+
+      <!-- Course to Tutor -->
+      <label for="course">Course to Tutor:</label>
+      <input type="text" id="course" name="course" placeholder="Enter the course name or code" required>
+
+      <!-- Grade in Course -->
+      <label for="grade">Grade in the Course:</label>
+      <select id="grade" name="grade" required>
+        <option value="" disabled selected>Select your grade</option>
+        <option value="A">A</option>
+        <option value="A-">A-</option>
+        <option value="B+">B+</option>
+      </select>
+
+      <!-- Submit Button -->
+      <button type="submit">Submit Application</button>
+    </form>
+  </div>
+</div>
+</body>
+  <footer class="footer">
+    <p>&copy; 2024 AUS Tutoring Website. All rights reserved.</p>
+</footer>
+  <script>
+    // Retrieve the authenticated user from localStorage
+    const User = JSON.parse(localStorage.getItem("User"));
+
+    // Check if the user is logged in
+
+      const { role } = User;
+
+      // Toggle element visibility based on the user's role
+      const tutorOnlyElement = document.getElementById("tutor-content")
+      const studentOnlyElement = document.getElementById("student-content");
+
+      if (role === "Tutor") {
+          if (tutorOnlyElement) tutorOnlyElement.style.display = "block"; // Show Tutor-specific content
+          if (studentOnlyElement) studentOnlyElement.style.display = "none"; // Hide Student-specific content
+      } else{
+          if (tutorOnlyElement) tutorOnlyElement.style.display = "none"; // Hide Tutor-specific content
+          if (studentOnlyElement) studentOnlyElement.style.display = "block"; // Show Student-specific content
+        }
+</script>
+<script>
+    document.getElementById("tutor-application-form").addEventListener("submit", async (event) => {
+        event.preventDefault(); // Prevent the default form submission
+
+        const username = User.username; // Assuming `User` contains the authenticated user details
+        const standing = document.getElementById("standing").value;
+        const course = document.getElementById("course").value;
+        const grade = document.getElementById("grade").value;
+
+        // Check if the user has already applied for the course
+        try {
+            const checkResponse = await fetch(`/api/application/check?username=${username}&course=${course}`);
+            const checkData = await checkResponse.json();
+
+            if (checkData.exists) {
+                alert("You have already applied for this course.");
+                return;
+            }
+
+            // Submit the application
+            const submitResponse = await fetch("/api/application/submit", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    username,
+                    standing,
+                    course,
+                    grade,
+                }),
+            });
+
+            const submitData = await submitResponse.json();
+            if (submitResponse.ok) {
+                alert(submitData.message);
+                // Optionally reset the form or redirect
+            } else {
+                alert(submitData.message);
+            }
+        } catch (error) {
+            console.error("Error submitting application:", error);
+            alert("Failed to submit the application. Please try again later.");
+        }
+    });
+</script>
+</body>
+</html>

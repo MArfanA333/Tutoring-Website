@@ -1,0 +1,100 @@
+<main class="content">
+    <div class="container mt-5">
+        <h1 class="mb-4">View and Manage Bookings</h1>
+        <table class="table table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>Course</th>
+                    <th>Session Type</th>
+                    <th>Date & Time</th>
+                    <th>Tutor</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="bookingsTableBody">
+                <!-- Dynamic content will be added here -->
+            </tbody>
+        </table>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+</main>
+
+<script>
+// Retrieve the authenticated user from the server (not localStorage anymore)
+async function getBookings() {
+    try {
+        const user = JSON.parse(localStorage.getItem("User"));
+        const response = await fetch(`/api/bookings/${user.username}`)
+        .then((response) => response.json())
+        .then((bookings) => {
+            console.log('Bookings:', bookings); // Debug log
+            populateBookingsTable(bookings);
+        })
+        .catch((error) => console.error('Error fetching bookings:', error));
+    
+
+        if (!response.ok) {
+            throw new Error("Failed to fetch bookings");
+        }
+
+        const bookings = await response.json();
+        populateBookingsTable(bookings)
+    } catch (error) {
+        console.error('Error fetching bookings:', error);
+    }
+}
+
+function populateBookingsTable(bookings) {
+    const tableBody = document.getElementById('bookingsTableBody');
+    tableBody.innerHTML = '';
+    bookings.forEach((booking) => {
+        const session = booking.Session_id; // Ensure populated session
+        const row = `
+            <tr>
+                <td>${session.Course}</td>
+                <td>${session.SessionType}</td>
+                <td>${new Date(session.DateTime).toLocaleString("en-US")}</td>
+                <td>${session.Tutor_name}</td>
+                <td>
+                    <button class="btn btn-info btn-sm" onclick="enterSession('${session._id}')">Enter Session</button>
+                    <button class="btn btn-danger btn-sm" onclick="cancelBooking('${booking._id}')">Cancel</button>
+                </td>
+            </tr>
+        `;
+        tableBody.insertAdjacentHTML('beforeend', row);
+    });
+}
+function enterSession(sessionId) {
+    // Redirect to the dynamic session page with the session ID
+    localStorage.setItem("Session",sessionId);
+    window.location.href = `/session/${sessionId}`;
+}
+
+
+// Function to cancel a booking
+async function cancelBooking(bookingId) {
+    try {
+        const response = await fetch('/api/cancel-booking', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ bookingId })
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to cancel the booking");
+        }
+
+        alert('Booking canceled successfully!');
+        getBookings(); // Reload the bookings after cancellation
+    } catch (error) {
+        console.error("Error canceling booking:", error);
+    }
+}
+
+// Load bookings on page load
+document.addEventListener('DOMContentLoaded', getBookings);
+</script>
+</div>

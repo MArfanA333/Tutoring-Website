@@ -1,0 +1,104 @@
+<main class="content">
+    <div class="container text-center mt-5">
+        <div class="jumbotron">
+            <h1 class="display-4 mb-4">Welcome to the AUS Tutoring Center</h1>
+            <p class="lead mb-4">Teaching & Learning</p>
+
+            <!-- Buttons Section -->
+            <div class="row justify-content-center">
+                <div class="col-12 col-md-6 col-lg-4 my-2">
+                    <a href="http://localhost:5000/browse" class="btn btn-primary btn-lg">Browse Courses</a>
+                </div>
+                <div class="col-12 col-md-6 col-lg-4 my-2">
+                    <a href="http://localhost:5000/managebooking" class="btn btn-info btn-lg">View Bookings</a>
+                </div>
+                <div class="col-12 col-md-6 col-lg-4 my-2">
+                    <a href="http://localhost:5000/profile" class="btn btn-dark btn-lg">Profile</a>
+                </div>
+            </div>
+            <div class="row justify-content-center mt-4" id="applyTutorRow" style="display: none;">
+                <div class="col-12 col-md-6 col-lg-4 my-2">
+                    <a href="http://localhost:5000/tutorApp" class="btn btn-secondary btn-lg">Apply to be a Tutor</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <h1 class="about">About Us:</h1>
+        <p class="about-text">
+            Welcome to the AUS Tutoring Service! Our platform is designed to support students in tackling challenging
+            courses by connecting them with peers who excel in those subjects. If you’ve done well in a course, you can
+            apply to become a tutor and help others succeed. Students can easily book sessions with tutors to clarify
+            doubts and strengthen their understanding. However, please ensure you attend your booked sessions, as
+            skipping them may lower your rating, and tutors may choose not.
+        </p>
+    </div>
+
+    <!-- Notifications Section -->
+    <div class="container mt-5">
+        <h2>Notifications</h2>
+        <table class="table table-striped ">
+            <thead class = "table-dark">
+                <tr>
+                    <th>Subject</th>
+                    <th>Body</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="notificationsTable">
+                <!-- Notifications will be dynamically loaded here -->
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<script>
+    async function fetchNotifications() {
+        try {
+            const studentUsername = JSON.parse(localStorage.getItem("User")).username; // Retrieve logged-in user's username
+    
+            const response = await fetch(`/api/notifications/${studentUsername}`); // Pass username in the API request
+            const notifications = await response.json();
+    
+            const notificationsTable = document.getElementById('notificationsTable');
+            notificationsTable.innerHTML = ''; // Clear the table
+    
+            notifications.forEach(notification => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${notification.Heading}</td>
+                    <td>${notification.Body}</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" onclick="deleteNotification('${notification._id}')">Delete</button>
+                    </td>
+                `;
+                notificationsTable.appendChild(row);
+            });
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+        }
+    }
+
+    // Delete a notification
+    async function deleteNotification(notificationId) {
+        try {
+            const response = await fetch(`/api/notifications/${notificationId}`, { method: 'DELETE' });
+
+            if (response.ok) {
+                alert('Notification deleted successfully.');
+                fetchNotifications(); // Reload the notifications
+            } else {
+                const error = await response.json();
+                console.error('Error deleting notification:', error.message);
+                alert('Failed to delete notification.');
+            }
+        } catch (error) {
+            console.error('Error deleting notification:', error);
+            alert('Failed to delete notification.');
+        }
+    }
+
+    // Load notifications on page load
+    document.addEventListener('DOMContentLoaded', fetchNotifications);
+</script>

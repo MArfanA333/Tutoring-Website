@@ -1,0 +1,196 @@
+<main class="content">
+
+    <!-- Profile Content -->
+    <div class="container mt-5">
+        <h2 class="text-center mb-4">User Profile</h2>
+        <div class="profile-card">
+            <!-- Full Name -->
+            <div class="form-group">
+                <label for="fullName">Name</label>
+                <input type="text" id="fullName" class="form-control" value="John Doe" disabled>
+                <button class="btn btn-sm btn-outline-primary mt-2" onclick="enableEdit('fullName')">Edit</button>
+            </div>
+
+            <!-- AUS ID -->
+            <div class="form-group">
+                <label for="ausId">AUS ID</label>
+                <input type="text" id="ausId" class="form-control" value="123456" disabled>
+                <button class="btn btn-sm btn-outline-primary mt-2" onclick="enableEdit('ausId')">Edit</button>
+            </div>
+
+            <!-- AUS Email -->
+            <div class="form-group">
+                <label for="email">AUS Email</label>
+                <input type="email" id="email" class="form-control" value="johndoe@aus.edu" disabled>
+            </div>
+
+            <!-- Password -->
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" class="form-control" value="password123" disabled>
+                <button class="btn btn-sm btn-outline-primary mt-2" onclick="enableEdit('password')">Edit</button>
+            </div>
+
+            <!-- Major -->
+            <div class="form-group">
+                <label for="major">Major</label>
+                <input type="text" id="major" class="form-control" value="Computer Science" disabled>
+                <button class="btn btn-sm btn-outline-primary mt-2" onclick="enableEdit('major')">Edit</button>
+            </div>
+
+            <!-- Courses to Tutor (Shown only for tutors) -->
+            <div class="form-group" id="coursesToTutorSection" style="display: none;">
+                <label for="courses">Courses to Tutor</label>
+                <textarea id="courses" class="form-control" rows="3" disabled></textarea>
+            </div>
+
+            <!-- Save Changes Button -->
+            <button class="btn btn-success mt-3" id="saveChangesBtn" onclick="saveChanges()">Save Changes</button>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and custom JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+
+<script>
+    // Enable editing for a specific field
+    function enableEdit(fieldId) {
+        const field = document.getElementById(fieldId);
+        
+        field.disabled = !field.disabled;
+        field.focus();
+    }
+</script>
+<script>
+    // Retrieve the authenticated user from localStorage
+    const User = JSON.parse(localStorage.getItem("User"));
+
+    // Check if the user is logged in
+    
+    const { role } = User;
+    
+    // Toggle element visibility based on the user's role
+    const tutorOnlyElement = document.getElementById("tutor-content")
+    const studentOnlyElement = document.getElementById("student-content");
+    
+    if (role === "Tutor") {
+          if (tutorOnlyElement) tutorOnlyElement.style.display = "block"; // Show Tutor-specific content
+          if (studentOnlyElement) studentOnlyElement.style.display = "none"; // Hide Student-specific content
+    } else{
+          if (tutorOnlyElement) tutorOnlyElement.style.display = "none"; // Hide Tutor-specific content
+          if (studentOnlyElement) studentOnlyElement.style.display = "block"; // Show Student-specific content
+    }
+</script>
+<script>
+    async function populateFormFields() {
+        // Get the user data from localStorage
+        const userString = localStorage.getItem("User");
+    
+        if (userString) {
+            try {
+                // Parse the JSON string
+                const user = JSON.parse(userString);
+    
+                // Populate the form fields with the user's information
+                document.getElementById("fullName").value = user.name;
+                document.getElementById("ausId").value = user.ausID || "";
+                document.getElementById("email").value = user.username || "";
+                document.getElementById("password").value = user.password || "";
+                document.getElementById("major").value = user.Major || "";
+    
+                // If the user's role is "Tutor", display the courses section and populate it
+                if (user.role === "Tutor") {
+                    const coursesSection = document.getElementById("coursesToTutorSection");
+                    coursesSection.style.display = "block"; // Show the section
+    
+                    // Fetch the courses the tutor teaches from the backend
+                    const username = user.username;
+        
+                    // Fetch the courses from the server
+                    const response = await fetch(`/api/tutored-courses/${username}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                    });
+
+
+                    if (response.ok) {
+                        const courses = await response.json();
+                        document.getElementById("courses").textContent = courses.join(", ");
+                    } else {
+                        document.getElementById("courses").textContent = "Unable to fetch courses.";
+                    }
+                }
+            } catch (error) {
+                console.error("Error populating form fields:", error);
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", populateFormFields);
+</script>
+
+<script>
+    async function saveChanges() {
+        // Gather updated values (excluding courses)
+        const fullName = document.getElementById("fullName").value;
+        const ausId = document.getElementById("ausId").value;
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+        const major = document.getElementById("major").value;
+    
+        // Disable all fields after saving
+        document.querySelectorAll(".form-control").forEach((field) => (field.disabled = true));
+    
+        const userString = localStorage.getItem("User");
+    
+        if (!userString) {
+            alert("No user data found in localStorage.");
+            return;
+        }
+    
+        try {
+            // Parse the current user data
+            const user = JSON.parse(userString);
+    
+            // Create an updated user object without modifying courses
+            const updatedUser = {
+                name: fullName || user.name,
+                ausID: ausId || user.ausID,
+                username: email || user.username,
+                password: password || user.password,
+                Major: major || user.Major,
+            };
+    
+            // Send updated user data to the server
+            const response = await fetch("/api/update-user", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(updatedUser),
+            });
+    
+            if (!response.ok) {
+                throw new Error("Failed to save user changes to the server.");
+            }
+    
+            // Update the user object in localStorage to reflect changes
+            localStorage.setItem("User", JSON.stringify({ ...user, ...updatedUser }));
+    
+            // Show a success message
+            alert("Profile updated successfully!\n\n" +
+                `Name: ${updatedUser.name}\n` +
+                `AUS ID: ${updatedUser.ausID}\n` +
+                `Email: ${updatedUser.username}\n` +
+                `Major: ${updatedUser.Major}`);
+        } catch (error) {
+            console.error("Error saving user data:", error);
+            alert("An error occurred while saving changes. Please try again.");
+        }
+    }
+</script>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AUS Tutoring Website</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/public/css/style.css">
+</head>
+<body>
+    <div class="container d-flex justify-content-center align-items-center vh-100">
+        <div class="card p-5 shadow" style="width: 400px;">
+            <h1 class="text-center mb-4">Sign Up</h1>
+            <form id="signup-form">
+                <div class="mb-3">
+                    <label for="email" class="form-label">AUS Email</label>
+                    <input type="email" class="form-control" id="email" placeholder="Enter your AUS email" required>
+                </div>
+                <div class="mb-3">
+                    <label for="id" class="form-label">AUS ID</label>
+                    <input type="text" class="form-control" id="id" placeholder="Eg. 00012345" required>
+                </div>
+                <div class="mb-3">
+                    <label for="name" class="form-label">Name</label>
+                    <input type="text" class="form-control" id="name" placeholder="Eg. Daniyal Timothy" required>
+                </div>
+                <div class="mb-3">
+                    <label for="major" class="form-label">Major</label>
+                    <input type="text" class="form-control" id="major" placeholder="Enter your Major" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Sign Up</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById("signup-form").addEventListener("submit", function (event) {
+            event.preventDefault(); // Prevent form from submitting normally
+        
+            const email = document.getElementById("email").value;
+            const ausID = document.getElementById("id").value;
+            const major = document.getElementById("major").value;
+            const password = document.getElementById("password").value;
+            const name = document.getElementById("name").value;
+            const role = 'Student';
+        
+            // Validate AUS email
+            if (!email.endsWith("@aus.edu")) {
+                alert("Please enter a valid AUS email ending with @aus.edu.");
+                return;
+            }
+        
+            // Validate AUS ID (must be 8 digits)
+            if (!/^\d{8}$/.test(ausID)) {
+                alert("Please enter a valid 8-digit AUS ID.");
+                return;
+            }
+
+            // Prepare the data to be sent to the backend
+            const userData = {
+                username: email,
+                ausID: ausID,
+                Major: major,
+                password: password,
+                name: name,
+                role: role
+            };
+        
+            // Send a POST request to the backend to save the user
+            fetch('http://localhost:5000/api/signup', { // Adjust URL if needed
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(userData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === "Signup successful!") {
+                    alert("Signup successful! You can now log in.");
+                    window.location.href = "http://localhost:5000/"; // Redirect to login page
+                } else {
+                    alert(data.message); // Show error message
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                alert("There was an error while processing your signup.");
+            });
+        });
+    </script>
+</body>
+</html>

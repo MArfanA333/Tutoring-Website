@@ -1,0 +1,38 @@
+<header class="navbar">
+    <div class="container">
+      <h1 class="logo">AUS Tutoring Website</h1>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="http://localhost:5000/index" class="btn" >Home</a></li>
+          <li><a href="http://localhost:5000/browse" class="btn" >Browse Sessions</a></li>
+          <li><a href="http://localhost:5000/tutorApp" class="btn" >Tutor Application</a></li>
+          <li><a href="http://localhost:5000/managebooking" class="btn" >View Bookings</a></li>
+          <li><a href="http://localhost:5000/profile" class="btn" >View Profile</a></li>
+          <li><a href="http://localhost:5000/managesession" class="btn tutor-content" id = "tutor-content">View Sessions</a></li>
+          <li><a href="http://localhost:5000" class="btn btn-outline-light logout-btn">Logout</a></li>
+        </ul>
+      </nav>
+    </div>
+</header>
+
+
+<script>
+    // Retrieve the authenticated user from localStorage
+    const User = JSON.parse(localStorage.getItem("User"));
+
+    // Check if the user is logged in
+
+      const { role } = User;
+
+      // Toggle element visibility based on the user's role
+      const tutorOnlyElement = document.getElementById("tutor-content")
+      const studentOnlyElement = document.getElementById("student-content");
+
+      if (role === "Tutor") {
+          if (tutorOnlyElement) tutorOnlyElement.style.display = "block"; // Show Tutor-specific content
+          if (studentOnlyElement) studentOnlyElement.style.display = "none"; // Hide Student-specific content
+      } else{
+          if (tutorOnlyElement) tutorOnlyElement.style.display = "none"; // Hide Tutor-specific content
+          if (studentOnlyElement) studentOnlyElement.style.display = "block"; // Show Student-specific content
+        }
+</script>
